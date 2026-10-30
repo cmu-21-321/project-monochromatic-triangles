@@ -47,16 +47,23 @@ def monoTriangles {n : ℕ}
   classical
   exact (triangles n).filter (isMonochromatic c)
 
-
-
 /- how many such monochromatic triangles there are -/
 def monoCount {n : ℕ} (c : Coloring n) : ℕ :=
   (monoTriangles c).card
 
+/- there are n - 1 vertices besides v itself - lemma for degree_sum -/
+lemma card_ne {n : ℕ} (v : Fin n) :
+    (Finset.univ.filter (fun u : Fin n => u ≠ v)).card = n - 1 := by
+  rw [Finset.filter_ne' Finset.univ v,
+      Finset.card_erase_of_mem (Finset.mem_univ v),
+      Finset.card_univ, Fintype.card_fin]
+
 /- every other vertex contributes to exactly one degree. -/
 theorem degree_sum {n : ℕ} (c : Coloring n) (v : Fin n) :
     redDegree c v + blueDegree c v = n - 1 := by
-  sorry
+  rw [← card_ne v]
+  rw [← Finset.card_filter_add_card_filter_not (fun u => c.red v u = true)]
+  simp only [redDegree, blueDegree, Finset.filter_filter, Bool.not_eq_true]
 
 /- Goodman's identity -/
 theorem goodman_identity {n : ℕ} (c : Coloring n) (hn : 3 ≤ n) :
