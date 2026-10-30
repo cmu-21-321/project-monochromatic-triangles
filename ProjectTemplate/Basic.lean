@@ -33,19 +33,20 @@ def isMonochromatic {n : ℕ}
   ∃ color : Bool,
     ∀ u ∈ s, ∀ v ∈ s, u ≠ v → c.red u v = color
 
-/- given some coloring c, we return all monochromatic traingles out of all
-   possible triangles -/
-noncomputable def monoTriangles {n : ℕ}
-    (c : Coloring n) : Finset (Finset (Fin n)) := by
-  classical
-  exact (triangles n).filter (isMonochromatic c)
-
 /- allows lean to decide whether a finite vertex set is monochromatic -/
 instance {n : ℕ} (c : Coloring n) :
     DecidablePred (isMonochromatic c) := by
   intro s
   unfold isMonochromatic
   infer_instance
+
+/- given some coloring c, we return all monochromatic traingles out of all
+   possible triangles -/
+def monoTriangles {n : ℕ}
+    (c : Coloring n) : Finset (Finset (Fin n)) := by
+  classical
+  exact (triangles n).filter (isMonochromatic c)
+
 
 
 /- how many such monochromatic triangles there are -/
