@@ -40,8 +40,16 @@ noncomputable def monoTriangles {n : ℕ}
   classical
   exact (triangles n).filter (isMonochromatic c)
 
+/- allows lean to decide whether a finite vertex set is monochromatic -/
+instance {n : ℕ} (c : Coloring n) :
+    DecidablePred (isMonochromatic c) := by
+  intro s
+  unfold isMonochromatic
+  infer_instance
+
+
 /- how many such monochromatic triangles there are -/
-noncomputable def monoCount {n : ℕ} (c : Coloring n) : ℕ :=
+def monoCount {n : ℕ} (c : Coloring n) : ℕ :=
   (monoTriangles c).card
 
 /- every other vertex contributes to exactly one degree. -/
