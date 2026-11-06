@@ -43,9 +43,8 @@ instance {n : ℕ} (c : Coloring n) :
 /- given some coloring c, we return all monochromatic traingles out of all
    possible triangles -/
 def monoTriangles {n : ℕ}
-    (c : Coloring n) : Finset (Finset (Fin n)) := by
-  classical
-  exact (triangles n).filter (isMonochromatic c)
+    (c : Coloring n) : Finset (Finset (Fin n)) :=
+  (triangles n).filter (isMonochromatic c)
 
 /- how many such monochromatic triangles there are -/
 def monoCount {n : ℕ} (c : Coloring n) : ℕ :=
@@ -78,9 +77,19 @@ theorem six_vertices_lower_bound (c : Coloring 6) :
     2 ≤ monoCount c := by
   sorry
 
+/-- Edges within {0, 1, 2} or {3, 4, 5} are red; edges between the groups are blue. -/
+def twoTriangles : Coloring 6 where
+  red u v := decide (u.val / 3 = v.val / 3)
+  symmetric := by
+    intro u v
+    simp only [eq_comm]
+
+lemma monoCount_twoTriangles : monoCount twoTriangles = 2 := by
+  decide
+
 /- exactly 2 mono triangles -/
 theorem six_vertices_sharp :
     ∃ c : Coloring 6, monoCount c = 2 := by
-  sorry
+  exact ⟨twoTriangles, monoCount_twoTriangles⟩
 
 end MonochromaticTriangles
