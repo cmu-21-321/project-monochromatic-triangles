@@ -28,27 +28,26 @@ def triangles (n : ℕ) : Finset (Finset (Fin n)) :=
   (Finset.univ : Finset (Fin n)).powersetCard 3
 
 /- all edges between distinct members of s have one color -/
-def isMonochromatic {n : ℕ}
-    (c : Coloring n) (s : Finset (Fin n)) : Prop :=
-  ∃ color : Bool,
+def isMonochromaticWith {n : ℕ}
+    (c : Coloring n) (color: Bool) (s : Finset (Fin n)) : Prop :=
     ∀ u ∈ s, ∀ v ∈ s, u ≠ v → c.red u v = color
 
 /- allows lean to decide whether a finite vertex set is monochromatic -/
 instance {n : ℕ} (c : Coloring n) :
     DecidablePred (isMonochromatic c) := by
   intro s
-  unfold isMonochromatic
+  unfold isMonochromaticWith
   infer_instance
 
 /- given some coloring c, we return all monochromatic traingles out of all
    possible triangles -/
-def monoTriangles {n : ℕ}
-    (c : Coloring n) : Finset (Finset (Fin n)) :=
-  (triangles n).filter (isMonochromatic c)
+def monoTrianglesWith {n : ℕ}
+    (c : Coloring n) (color : Bool): Finset (Finset (Fin n)) :=
+  (triangles n).filter (isMonochromaticWith c color)
 
 /- how many such monochromatic triangles there are -/
 def monoCount {n : ℕ} (c : Coloring n) : ℕ :=
-  (monoTriangles c).card
+  Σ color : Bool, (monoTrianglesWith c color).card
 
 /- there are n - 1 vertices besides v itself - lemma for degree_sum -/
 lemma card_ne {n : ℕ} (v : Fin n) :
