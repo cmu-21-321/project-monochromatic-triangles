@@ -34,7 +34,7 @@ def isMonochromaticWith {n : ℕ}
 
 /- allows lean to decide whether a finite vertex set is monochromatic -/
 instance {n : ℕ} (c : Coloring n) :
-    DecidablePred (isMonochromatic c) := by
+    DecidablePred (isMonochromaticWith c color) := by
   intro s
   unfold isMonochromaticWith
   infer_instance
@@ -47,7 +47,7 @@ def monoTrianglesWith {n : ℕ}
 
 /- how many such monochromatic triangles there are -/
 def monoCount {n : ℕ} (c : Coloring n) : ℕ :=
-  Σ color : Bool, (monoTrianglesWith c color).card
+  ∑ color : Bool, (monoTrianglesWith c color).card
 
 /- there are n - 1 vertices besides v itself - lemma for degree_sum -/
 lemma card_ne {n : ℕ} (v : Fin n) :
@@ -70,11 +70,30 @@ theorem goodman_identity {n : ℕ} (c : Coloring n) (hn : 3 ≤ n) :
       2 * Nat.choose n 3 := by
   sorry
 
+/- Lemma used for six_vertices lower bound,
+   Proves the arithmetic-mean geometric-mean inequality -/
+lemma four_mul_le_sq (r b : ℕ) : (4 * (r * b) ≤ (r + b) ^ 2) := by
+  zify
+  nlinarith [sq_nonneg ((r : ℤ) - b)]
+
 /- Goodman's identity applied to get the result that there are at least two mono
    triangle in K₆ -/
 theorem six_vertices_lower_bound (c : Coloring 6) :
     2 ≤ monoCount c := by
-  sorry
+  have h := goodman_identity c (by norm_num)
+  have hsum : ∑ v : Fin 6, redDegree c v * blueDegree c v ≤ 36 := by
+    calc ∑ v : Fin 6, redDegree c v * blueDegree c v
+        ≤ ∑ _v : Fin 6, 6 := by
+          apply Finset.sum_le_sum
+          intro v _
+          have h4 := four_mul_le_sq (redDegree c v) (blueDegree c v)
+          rw [degree_sum c v] at h4      -- h4 : 4 * (r * b) ≤ (6 - 1) ^ 2
+          norm_num at h4                 -- h4 : 4 * (r * b) ≤ 25
+          omega                          -- so r * b ≤ 6
+      _ = 36 := by simp
+  have hc : Nat.choose 6 3 = 20 := by decide
+  rw [hc] at h
+  omega
 
 /-- Edges within {0, 1, 2} or {3, 4, 5} are red; edges between the groups are blue. -/
 def twoTriangles : Coloring 6 where
