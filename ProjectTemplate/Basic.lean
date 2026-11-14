@@ -33,7 +33,7 @@ def isMonochromaticWith {n : ℕ}
     ∀ u ∈ s, ∀ v ∈ s, u ≠ v → c.red u v = color
 
 /- allows lean to decide whether a finite vertex set is monochromatic -/
-instance {n : ℕ} (c : Coloring n) :
+instance {n : ℕ} (c : Coloring n) (color : Bool) :
     DecidablePred (isMonochromaticWith c color) := by
   intro s
   unfold isMonochromaticWith
