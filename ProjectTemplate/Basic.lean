@@ -63,12 +63,77 @@ theorem degree_sum {n : ℕ} (c : Coloring n) (v : Fin n) :
   rw [← Finset.card_filter_add_card_filter_not (fun u => c.red v u = true)]
   simp only [redDegree, blueDegree, Finset.filter_filter, Bool.not_eq_true]
 
+open Finset
+
+/- a mixed triple consists of a centre, a red neighbour,
+   and a blue neighbour. -/
+def mixedTriples {n : ℕ} (c : Coloring n) (s : Finset (Fin n)) :=
+  (s ×ˢ (s ×ˢ s)).filter fun ⟨u, v, w⟩ => -- vertices (u, (v, w))
+    v ≠ u ∧ w ≠ u ∧ -- both neighbours differ from the centre
+    c.red u v = true ∧ c.red u w = false -- uv red, and uw blue
+
+/- proves that u, v, w are pairwise distinct -/
+lemma mixed_distinct {n : ℕ} (c : Coloring n)
+    {s : Finset (Fin n)} {p : Fin n × (Fin n × Fin n)}
+    (hp : p ∈ mixedTriples c s) :
+    p.1 ≠ p.2.1 ∧ p.1 ≠ p.2.2 ∧ p.2.1 ≠ p.2.2 := by
+  rcases p with ⟨u, v, w⟩
+  change u ≠ v ∧ u ≠ w ∧ v ≠ w
+  simp only [mixedTriples, mem_filter, mem_product] at hp -- unfolds everything
+  rcases hp with ⟨⟨hu, hv, hw⟩, hvu, hwu, hred, hblue⟩
+  refine ⟨hvu.symm, hwu.symm, ?_⟩ -- v ≠ w remains
+  intro h -- v = w, for contradiction
+  have hr := hred -- uv red = true
+  rw [h, hblue] at hr -- replace v with w, then use uw red = false to get false = true
+  contradiction
+
+/- proves that this triangle has three distinct vertices -/
+lemma mixed_triangle_card {n : ℕ} (c : Coloring n)
+    {s : Finset (Fin n)} {p : Fin n × (Fin n × Fin n)}
+    (hp : p ∈ mixedTriples c s) :
+    ({p.1, p.2.1, p.2.2} : Finset (Fin n)).card = 3 := by
+  rcases p with ⟨u, v, w⟩
+  rcases mixed_distinct c hp with ⟨huv, huw, hvw⟩
+  simp [huv, huw, hvw]
+
+/- count all mixed triples by multiplying red degree by blue degree at all centres -/
+lemma mixed_total {n : ℕ} (c : Coloring n) :
+    (mixedTriples c univ).card =
+      ∑ v : Fin n, redDegree c v * blueDegree c v := by
+  simp only [mixedTriples, card_eq_sum_ones, sum_filter, sum_product]
+  apply sum_congr rfl
+  intro v _
+  simp only [redDegree, blueDegree, card_eq_sum_ones, sum_filter]
+  rw [sum_mul]
+  apply sum_congr rfl
+  intro u _
+  rw [mul_sum]
+  apply sum_congr rfl
+  intro w _
+  split_ifs <;> simp_all -- splits conditions into 4 cases, based on neighbors
+                         -- are red/¬red blue/¬blue
+
+lemma mixed_fiber {n : ℕ} (c : Coloring n)
+    {s : Finset (Fin n)} (hs : s.card = 3) :
+    ((mixedTriples c univ).filter
+      (fun ⟨u, v, w⟩ => ({u, v, w} : Finset (Fin n)) = s)) =
+      mixedTriples c s := by sorry
+
+lemma mixed_double_count {n : ℕ} (c : Coloring n) :
+    (mixedTriples c univ).card =
+      ∑ s ∈ triangles n, (mixedTriples c s).card := by sorry
+
+lemma triangle_contribution {n : ℕ} (c : Coloring n)
+    {s : Finset (Fin n)} (hs : s.card = 3) :
+    2 * (∑ color : Bool,
+      if isMonochromaticWith c color s then 1 else 0) +
+      (mixedTriples c s).card = 2 := by sorry
+
 /- Goodman's identity -/
-theorem goodman_identity {n : ℕ} (c : Coloring n) (hn : 3 ≤ n) :
+theorem goodman_identity {n : ℕ} (c : Coloring n) (_hn : 3 ≤ n) :
     2 * monoCount c +
       (∑ v : Fin n, redDegree c v * blueDegree c v) =
-      2 * Nat.choose n 3 := by
-  sorry
+      2 * Nat.choose n 3 := by sorry
 
 /- Lemma used for six_vertices lower bound,
    Proves the arithmetic-mean geometric-mean inequality -/
