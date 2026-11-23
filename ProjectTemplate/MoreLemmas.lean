@@ -57,8 +57,25 @@ def balancedColoring (k : ℕ) : Coloring (2 * k) where
 /- every vertex has exactly k blue neighbours, namely the other group -/
 lemma balanced_blueDegree (k : ℕ) (v : Fin (2 * k)) :
     blueDegree (balancedColoring k) v = k := by
-  -- split on the group containing v, then count the vertices in the other group
-  sorry
+  have hvbound := v.isLt
+  have hk : 0 < k := by omega -- a vertex can only exist when k > 0
+  let cut : Fin (2 * k) := ⟨k, by omega⟩ -- first vertex of the second group
+  unfold blueDegree
+  by_cases hv : v.val < k -- which group contains v?
+  · have hset : (univ.filter (fun u => u ≠ v ∧
+        (balancedColoring k).red v u = false)) = Ici cut := by
+      ext u -- compare the blue neighbourhood with the second group
+      simp [balancedColoring, hv, Fin.le_def, Fin.ext_iff, cut]
+      omega -- being in the other group also guarantees u ≠ v
+    rw [hset, Fin.card_Ici] -- the vertices k, ..., 2k - 1
+    dsimp [cut]
+    omega -- 2k - k = k
+  · have hset : (univ.filter (fun u => u ≠ v ∧
+        (balancedColoring k).red v u = false)) = Iio cut := by
+      ext u -- now the blue neighbours are the vertices before k
+      simp [balancedColoring, hv, Fin.lt_def, Fin.ext_iff, cut]
+      omega
+    rw [hset, Fin.card_Iio] -- the vertices 0, ..., k - 1
 
 /- the remaining k - 1 neighbours are red -/
 lemma balanced_redDegree (k : ℕ) (v : Fin (2 * k)) :
@@ -98,26 +115,65 @@ lemma even_degree_product_bound {k : ℕ} (c : Coloring (2 * k))
 lemma even_choose_identity (k : ℕ) :
     2 * Nat.choose (2 * k) 3 =
       4 * Nat.choose k 3 + (2 * k) * (k * (k - 1)) := by
-  -- handle k = 0 and 1, then expand both choose terms using six_mul_choose_three
-  sorry
+  rcases k with _ | _ | k -- handle 0 and 1 separately
+  · decide
+  · decide
+  · have hlarge := six_mul_choose_three (2 * (k + 2))
+    have hsmall := six_mul_choose_three (k + 2)
+    -- remove the subtractions before combining the two polynomial identities
+    have h₁ : 2 * (k + 2) - 1 = 2 * k + 3 := by omega
+    have h₂ : 2 * (k + 2) - 2 = 2 * k + 2 := by omega
+    have h₃ : k + 2 - 1 = k + 1 := by omega
+    have h₄ : k + 2 - 2 = k := by omega
+    rw [h₁, h₂] at hlarge
+    rw [h₃, h₄] at hsmall
+    change 2 * Nat.choose (2 * (k + 2)) 3 =
+      4 * Nat.choose (k + 2) 3 + (2 * (k + 2)) * ((k + 2) * (k + 2 - 1))
+    rw [h₃]
+    nlinarith -- combine the expanded choose terms and cancel the factor 6
 
 /- every coloring of K_(2k) has at least twice choose k 3 mono triangles -/
 theorem even_vertices_lower_bound (k : ℕ) (c : Coloring (2 * k)) :
     2 * Nat.choose k 3 ≤ monoCount c := by
-  -- bound the degree sum by 2k * k(k - 1), then use Goodman's identity
-  sorry
+  by_cases hk : k < 2
+  · interval_cases k <;> norm_num [Nat.choose] -- choose k 3 = 0, so the lower bound is automatic
+  · have hn : 3 ≤ 2 * k := by omega
+    have h := goodman_identity c hn
+    have hsum : (∑ v : Fin (2 * k), redDegree c v * blueDegree c v) ≤
+        (2 * k) * (k * (k - 1)) := by
+      calc
+        _ ≤ ∑ _v : Fin (2 * k), k * (k - 1) := by
+          apply sum_le_sum -- bound the degree product at each vertex
+          intro v _
+          exact even_degree_product_bound c v
+        _ = _ := by simp -- add the same bound 2k times
+    rw [even_choose_identity] at h -- total triangles in terms of choose k 3
+    omega -- the degree sum is at most its bound, so 2M ≥ 4 * choose k 3
 
 /- our two groups attain that bound. use their degrees in Goodman's identity -/
 lemma monoCount_balancedColoring (k : ℕ) :
     monoCount (balancedColoring k) = 2 * Nat.choose k 3 := by
-  -- substitute the construction's degrees into Goodman's identity
-  sorry
+  by_cases hk : k < 2
+  · have hn : 2 * k < 3 := by omega
+    rw [monoCount_of_lt_three _ hn] -- no triangles when k = 0 or 1
+    interval_cases k <;> decide
+  · have hn : 3 ≤ 2 * k := by omega
+    have h := goodman_identity (balancedColoring k) hn
+    -- every vertex attains the degree-product bound
+    have hsum : (∑ v : Fin (2 * k),
+        redDegree (balancedColoring k) v * blueDegree (balancedColoring k) v) =
+        (2 * k) * (k * (k - 1)) := by
+      simp [balanced_redDegree, balanced_blueDegree, Nat.mul_comm]
+    rw [hsum, even_choose_identity] at h -- substitute the degree sum and triangle count
+    omega -- cancel the degree products, leaving 2M = 4 * choose k 3
 
 /- this is the exact minimum for every even number of vertices -/
 theorem even_vertices_sharp (k : ℕ) :
     (∀ c : Coloring (2 * k), 2 * Nat.choose k 3 ≤ monoCount c) ∧
       ∃ c : Coloring (2 * k), monoCount c = 2 * Nat.choose k 3 := by
-  -- combine the lower bound with the balanced coloring that attains it
-  sorry
+  constructor
+  · intro c -- the bound holds for every coloring
+    exact even_vertices_lower_bound k c
+  · exact ⟨balancedColoring k, monoCount_balancedColoring k⟩ -- one attaining it
 
 end MonochromaticTriangles
