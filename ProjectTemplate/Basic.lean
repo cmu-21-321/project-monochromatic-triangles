@@ -117,23 +117,79 @@ lemma mixed_fiber {n : ℕ} (c : Coloring n)
     {s : Finset (Fin n)} (hs : s.card = 3) :
     ((mixedTriples c univ).filter
       (fun ⟨u, v, w⟩ => ({u, v, w} : Finset (Fin n)) = s)) =
-      mixedTriples c s := by sorry
+      mixedTriples c s := by
+    ext p -- set extensionality
+    rcases p with ⟨u, v, w⟩
+    constructor
+    · intro hp
+      rcases mem_filter.mp hp with ⟨hp, rfl⟩ -- names first fact hp, rfl replaces
+                                            --  s with ⟨u, v, w⟩
+      simpa [mixedTriples] using hp
+    · intro hp
+      rcases mem_filter.mp hp with ⟨hmem, hcolors⟩ -- unfold filter definition
+      rcases mem_product.mp hmem with ⟨hu, hvw⟩ -- unfold further to get
+                                               -- u, v, w ∈ s separately
+      rcases mem_product.mp hvw with ⟨hv, hw⟩
+      have hsub : ({u, v, w} : Finset (Fin n)) ⊆ s := by
+        simp only [insert_subset_iff, singleton_subset_iff]
+        exact ⟨hu, hv, hw⟩ -- proving it is a subset by membership of all u,v,w ∈ S
+      have heq : ({u, v, w} : Finset (Fin n)) = s :=
+        eq_of_subset_of_card_le hsub
+          (by rw [hs, mixed_triangle_card c hp]) -- equality proven using cardinality
+      apply mem_filter.mpr
+      exact ⟨by simpa [mixedTriples] using hcolors, heq⟩
 
 lemma mixed_double_count {n : ℕ} (c : Coloring n) :
     (mixedTriples c univ).card =
-      ∑ s ∈ triangles n, (mixedTriples c s).card := by sorry
+      ∑ s ∈ triangles n, (mixedTriples c s).card := by
+
+    have hmap : ∀ p ∈ mixedTriples c univ,
+        ({p.1, p.2.1, p.2.2} : Finset (Fin n)) ∈ triangles n := by
+      intro p hp
+      simp [triangles, mem_powersetCard, mixed_triangle_card c hp]
+    rw [card_eq_sum_card_fiberwise hmap]
+    apply sum_congr rfl
+    intro s hs
+    rw [mixed_fiber c (mem_powersetCard.mp hs).2]
 
 lemma triangle_contribution {n : ℕ} (c : Coloring n)
     {s : Finset (Fin n)} (hs : s.card = 3) :
     2 * (∑ color : Bool,
       if isMonochromaticWith c color s then 1 else 0) +
-      (mixedTriples c s).card = 2 := by sorry
+      (mixedTriples c s).card = 2 := by
+    rcases card_eq_three.mp hs with ⟨a, b, d, hab, had, hbd, rfl⟩
+    have hba := hab.symm
+    have hda := had.symm
+    have hdb := hbd.symm
+    have hsym₁ := c.symmetric b a
+    have hsym₂ := c.symmetric d a
+    have hsym₃ := c.symmetric d b
+    simp only [mixedTriples, card_eq_sum_ones, sum_filter, sum_product,
+      Fintype.sum_bool]
+    cases h₁ : c.red a b <;>
+      cases h₂ : c.red a d <;>
+      cases h₃ : c.red b d <;>
+      simp_all [isMonochromaticWith, filter_insert, filter_singleton]
 
 /- Goodman's identity -/
 theorem goodman_identity {n : ℕ} (c : Coloring n) (_hn : 3 ≤ n) :
     2 * monoCount c +
       (∑ v : Fin n, redDegree c v * blueDegree c v) =
-      2 * Nat.choose n 3 := by sorry
+      2 * Nat.choose n 3 := by
+  have hmono : monoCount c =
+      ∑ s ∈ triangles n, ∑ color : Bool,
+        if isMonochromaticWith c color s then 1 else 0 := by
+    simp only [monoCount, monoTrianglesWith, card_eq_sum_ones, sum_filter]
+    exact sum_comm
+  rw [hmono, ← mixed_total c, mixed_double_count c,
+    mul_sum, ← sum_add_distrib]
+  calc
+    _ = ∑ _s ∈ triangles n, 2 := by
+      apply sum_congr rfl
+      intro s hs
+      exact triangle_contribution c (mem_powersetCard.mp hs).2
+    _ = 2 * Nat.choose n 3 := by
+      simp [triangles, Nat.mul_comm]
 
 /- Lemma used for six_vertices lower bound,
    Proves the arithmetic-mean geometric-mean inequality -/
