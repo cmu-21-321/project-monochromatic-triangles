@@ -1,67 +1,63 @@
-# ProjectTemplate
+# Monochromatic Triangles: Formalizing Goodman's Identity in Lean 4
 
-A template for Lean 4 projects that depend on [Mathlib](https://github.com/leanprover-community/mathlib4).
+A Lean 4 + Mathlib formalization of **Goodman's identity** for red/blue edge colorings of complete graphs, and the lower bounds on monochromatic triangles that follow from it.
 
-## Prerequisites
+**Authors:** Nada El-Mestkawy and Rashid Baddoura (21-321, Carnegie Mellon University, Fall 2026)
 
-Install Lean via [elan](https://github.com/leanprover/elan) (see the
-[Lean installation guide](https://lean-lang.org/install/)). The correct Lean version is
-picked up automatically from `lean-toolchain`.
+## The mathematics
 
-## 1. Rename the project
+Color every edge of the complete graph Kₙ red or blue. Let M(c) be the number of monochromatic triangles, and let r_v and b_v be the red and blue degrees of vertex v. **Goodman's identity** (A. W. Goodman, 1959) states
 
-After creating your repository from this template, rename it from `ProjectTemplate` to your
-own project name:
+$$2M(c) + \sum_v r_v b_v = 2\binom{n}{3}.$$
 
-```bash
-./customize.sh MyProject
+An upper bound on the degree products therefore gives a lower bound on monochromatic triangles.
+
+## Main results
+
+| Result | Lean name | File |
+|---|---|---|
+| Goodman's identity | `goodman_identity` | `Basic.lean` |
+| Every coloring of K₆ has at least 2 monochromatic triangles | `six_vertices_lower_bound` | `Basic.lean` |
+| Some coloring of K₆ has exactly 2 | `six_vertices_sharp` | `Basic.lean` |
+| Lower bound for every n ≥ 3: 2·C(n,3) ≤ 2M(c) + n·⌊(n−1)²/4⌋ | `goodman_lower_bound` | `MoreLemmas.lean` |
+| Exact minimum on K₂ₖ: every coloring has at least 2·C(k,3), and some coloring attains it | `even_vertices_sharp` | `MoreLemmas.lean` |
+
+## File layout
+
+```
+ProjectTemplate.lean            -- imports the two files below
+ProjectTemplate/
+  Basic.lean                    -- definitions, Goodman's identity, K₆ results
+  MoreLemmas.lean               -- general lower bound and even-order extension
+lakefile.toml, lean-toolchain   -- build config (Lean v4.36.0-rc1, Mathlib v4.36.0-rc1)
+.github/workflows/              -- CI: builds the project on every push
 ```
 
-This updates `lakefile.toml`, `lake-manifest.json`, the Lean imports and this README's title, and
-renames `ProjectTemplate.lean` and `ProjectTemplate/` to `MyProject.lean` and `MyProject/`.
-The name must be a valid Lean module name (letters, digits and underscores, starting with a
-letter; UpperCamelCase is conventional). Commit the result, then delete `customize.sh`.
+### `ProjectTemplate/Basic.lean`
 
-## 2. Get the Mathlib cache
+- **Definitions.**
+  - `Coloring n`: a symmetric function `Fin n → Fin n → Bool`, where `true` means red and `false` means blue.
+  - `redDegree` and `blueDegree`.
+  - `triangles n`: all 3-element subsets, via `powersetCard 3`.
+  - `isMonochromaticWith c color s`: every edge in `s` has the given color.
+  - `monoCount c`: monochromatic triangles, summed over both colors.
+- **`degree_sum`**: r_v + b_v = n − 1.
+- **The double count.**
+  - `mixedTriples`: ordered triples (centre, red neighbour, blue neighbour).
+  - `mixed_total`: counted by centre, there are Σ r_v·b_v of them.
+  - `mixed_fiber` and `mixed_double_count`: counted by triangle, using Mathlib's `card_eq_sum_card_fiberwise`.
+  - `triangle_contribution`: each triangle contributes 0 mixed triples if monochromatic and 2 otherwise. This is checked by case analysis on the three edge colors.
+- **K₆.**
+  - `four_mul_le_sq` (AM–GM: 4rb ≤ (r+b)²) gives `six_vertices_lower_bound`.
+  - `twoTriangles` (two red triangles joined by blue edges) is verified to have exactly 2 monochromatic triangles with `decide`.
 
-Compiling Mathlib from source takes hours, so download the prebuilt files instead:
+### `ProjectTemplate/MoreLemmas.lean`
 
-```bash
-lake exe cache get
-```
+- **`degree_product_bound`, `sum_degree_products_bound`, `goodman_lower_bound`**: the general lower bound for any n ≥ 3.
+- **`balancedColoring k`**: split K₂ₖ into two groups of k, with edges red within a group and blue between groups. `balanced_blueDegree` and `balanced_redDegree` compute its degrees.
+- **`six_mul_choose_three`, `even_choose_identity`**: binomial arithmetic, written without division.
+- **`even_vertices_lower_bound`, `monoCount_balancedColoring`, `even_vertices_sharp`**: the exact minimum 2·C(k,3) for every even order.
 
-Re-run this whenever you change the Mathlib version (or if your editor starts rebuilding
-Mathlib files).
+## Reference
 
-## 3. Build and work on the project
-
-```bash
-lake build
-```
-
-- Put your Lean files under `MyProject/` and import each one from `MyProject.lean`, so that
-  `lake build` (and CI) checks them.
-- Open the repository folder (not a single file) in VS Code with the Lean 4 extension.
-
-## Updating Mathlib
-
-Change the `rev` under `[[require]]` in `lakefile.toml` to the new Mathlib tag, and set
-`lean-toolchain` to match. Then run:
-
-```bash
-lake update mathlib
-lake exe cache get
-lake build
-```
-
-Alternatively, run the **Update Dependencies** workflow from the GitHub *Actions* tab: it
-opens a pull request if the update builds, or an issue if it doesn't. (Uncomment the
-`schedule` block in `.github/workflows/update.yml` to run it automatically.)
-
-## GitHub setup
-
-- **CI**: every push and pull request is built by `.github/workflows/lean_action_ci.yml`.
-- To let the update workflow open pull requests, go to **Settings → Actions → General** and
-  tick **Allow GitHub Actions to create and approve pull requests**.
-- To publish docs to GitHub Pages, set **Settings → Pages → Source** to "GitHub Actions" and
-  uncomment the `docgen-action` line in `lean_action_ci.yml`.
+A. W. Goodman. On Sets of Acquaintances and Strangers at any Party. *The American Mathematical Monthly*, 66(9):778–783, 1959. doi:10.1080/00029890.1959.11989408.
